@@ -1,0 +1,5 @@
+{
+  "name": "Coffee Rewards Card",
+  "description": "A digital loyalty card for a coffee shop that tracks purchases towards a reward. The app supports both Khmer and English languages.",
+  "requestFramePermissions": []
+}
