@@ -1,3 +1,4 @@
+
 export interface Translations {
   title: string;
   progressText: (count: number, total: number) => string;
@@ -19,6 +20,7 @@ export interface Translations {
   loginButton: string;
   logoutButton: string;
   welcomeMessage: (username: string) => string;
+  userNotFoundError: string;
   // Login selector
   userLoginPrompt: string;
   adminLoginPrompt: string;
@@ -43,7 +45,7 @@ export interface Translations {
 
 export const translations: Record<'kh' | 'en', Translations> = {
   kh: {
-    title: "ការសន្សំពិន្ទុ",
+    title: "កាតสะสมពិន្ទុកាแฟ",
     progressText: (count, total) => `កែវទី ${count} នៃ ${total}`,
     instructions: "ប្រមូលត្រា 15 ដើម្បីទទួលបាន Blink Box Cup មួយ! សូមសួរ​បុគ្គលិក​ដើម្បី​បន្ថែម​ត្រា។",
     addStampButton: "បន្ថែមត្រា",
@@ -59,9 +61,10 @@ export const translations: Record<'kh' | 'en', Translations> = {
     loginTitle: "សូមស្វាគមន៍",
     loginInstructions: "បញ្ចូលឈ្មោះអ្នកប្រើរបស់អ្នក ដើម្បីរក្សាទុកត្រារបស់អ្នក។",
     usernamePlaceholder: "ឈ្មោះ​អ្នកប្រើប្រាស់",
-    loginButton: "ចូល / ចុះឈ្មោះ",
+    loginButton: "ចូល",
     logoutButton: "ចាកចេញ",
     welcomeMessage: (username) => `សួស្តី, ${username}`,
+    userNotFoundError: "រកមិនឃើញអ្នកប្រើទេ។ សូមស្នើសុំឱ្យអ្នកគ្រប់គ្រងបង្កើតគណនីសម្រាប់អ្នក។",
     userLoginPrompt: "ចូលគណនី​អ្នក​ប្រើ",
     adminLoginPrompt: "ចូលគណនី​អ្នកគ្រប់គ្រង",
     adminLoginTitle: "ចូលជាអ្នកគ្រប់គ្រង",
@@ -98,9 +101,10 @@ export const translations: Record<'kh' | 'en', Translations> = {
     loginTitle: "Welcome!",
     loginInstructions: "Enter your username to save your stamps.",
     usernamePlaceholder: "Username",
-    loginButton: "Login / Sign Up",
+    loginButton: "Login",
     logoutButton: "Log Out",
     welcomeMessage: (username) => `Hi, ${username}`,
+    userNotFoundError: "User not found. Please ask an admin to create an account for you.",
     userLoginPrompt: "User Login",
     adminLoginPrompt: "Admin Login",
     adminLoginTitle: "Admin Login",

@@ -66,15 +66,17 @@ const App: React.FC = () => {
     }
   }, [session.user]);
 
-  const handleUserLogin = (username: string) => {
+  const handleUserLogin = (username: string): boolean => {
     const db = getDb();
-    if (!db.users[username]) {
-      db.users[username] = { stamps: 0, language: 'kh' };
+    const lowerCaseUsername = username.toLowerCase();
+    if (db.users[lowerCaseUsername]) {
+      db.currentUser = lowerCaseUsername;
+      saveDb(db);
+      setSession({ user: lowerCaseUsername, admin: null });
+      setView('rewards');
+      return true;
     }
-    db.currentUser = username;
-    saveDb(db);
-    setSession({ user: username, admin: null });
-    setView('rewards');
+    return false;
   };
   
   const handleAdminLogin = (username: string) => {
