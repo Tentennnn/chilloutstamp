@@ -58,80 +58,60 @@ function openDb(): Promise<IDBDatabase> {
   });
 }
 
-// User Functions
-export async function getAllUsers(): Promise<User[]> {
-  const db = await openDb();
+/**
+ * A utility to promisify IndexedDB requests.
+ */
+function promisifyRequest<T>(request: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction(USERS_STORE, 'readonly');
-    const store = transaction.objectStore(USERS_STORE);
-    const request = store.getAll();
-
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
+}
+
+
+// User Functions
+export async function getAllUsers(): Promise<User[]> {
+  const db = await openDb();
+  const transaction = db.transaction(USERS_STORE, 'readonly');
+  const store = transaction.objectStore(USERS_STORE);
+  return promisifyRequest(store.getAll());
 }
 
 export async function getUser(username: string): Promise<User | undefined> {
   const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(USERS_STORE, 'readonly');
-    const store = transaction.objectStore(USERS_STORE);
-    const request = store.get(username);
-
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
+  const transaction = db.transaction(USERS_STORE, 'readonly');
+  const store = transaction.objectStore(USERS_STORE);
+  return promisifyRequest(store.get(username));
 }
 
 export async function upsertUser(user: User): Promise<void> {
     const db = await openDb();
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction(USERS_STORE, 'readwrite');
-        const store = transaction.objectStore(USERS_STORE);
-        const request = store.put(user);
-
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
-    });
+    const transaction = db.transaction(USERS_STORE, 'readwrite');
+    const store = transaction.objectStore(USERS_STORE);
+    await promisifyRequest(store.put(user));
 }
 
 export async function deleteUser(username: string): Promise<void> {
   const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(USERS_STORE, 'readwrite');
-    const store = transaction.objectStore(USERS_STORE);
-    const request = store.delete(username);
-
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
-  });
+  const transaction = db.transaction(USERS_STORE, 'readwrite');
+  const store = transaction.objectStore(USERS_STORE);
+  await promisifyRequest(store.delete(username));
 }
 
 // Session Functions
 export async function getSession(): Promise<Session> {
   const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(SESSION_STORE, 'readonly');
-    const store = transaction.objectStore(SESSION_STORE);
-    const request = store.get('current');
-
-    request.onsuccess = () => {
-      resolve(request.result || { id: 'current', user: null, admin: null });
-    };
-    request.onerror = () => reject(request.error);
-  });
+  const transaction = db.transaction(SESSION_STORE, 'readonly');
+  const store = transaction.objectStore(SESSION_STORE);
+  const session = await promisifyRequest(store.get('current'));
+  return session || { id: 'current', user: null, admin: null };
 }
 
 export async function setSession(sessionData: Omit<Session, 'id'>): Promise<void> {
   const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(SESSION_STORE, 'readwrite');
-    const store = transaction.objectStore(SESSION_STORE);
-    const request = store.put({ id: 'current', ...sessionData });
-
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
-  });
+  const transaction = db.transaction(SESSION_STORE, 'readwrite');
+  const store = transaction.objectStore(SESSION_STORE);
+  await promisifyRequest(store.put({ id: 'current', ...sessionData }));
 }
 
 // --- End IndexedDB ---
