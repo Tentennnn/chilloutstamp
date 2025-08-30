@@ -3,7 +3,8 @@ import React, { useState } from 'react';
 import type { Translations } from '../constants/translations';
 
 interface LoginProps {
-  onLogin: (username: string) => boolean;
+  // FIX: Changed onLogin to accept a Promise to handle async login operations.
+  onLogin: (username: string) => Promise<boolean>;
   t: Translations;
   onBack: () => void;
 }
@@ -12,10 +13,11 @@ export const Login: React.FC<LoginProps> = ({ onLogin, t, onBack }) => {
   const [username, setUsername] = useState('');
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // FIX: Made handleSubmit async and used await to handle the Promise returned by onLogin.
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (username.trim()) {
-      const loginSuccess = onLogin(username.trim().toLowerCase());
+      const loginSuccess = await onLogin(username.trim().toLowerCase());
       if (!loginSuccess) {
         setError(t.userNotFoundError);
         setTimeout(() => setError(''), 3000);

@@ -1,64 +1,38 @@
+
 import React, { useState, useEffect } from 'react';
 import { Header } from './Header';
 import { StampCard } from './StampCard';
 import { RewardModal } from './RewardModal';
 import { translations } from '../constants/translations';
-import { DB_KEY } from '../App';
-
-const getUserData = (username: string): { stamps: number, isRewardReady: boolean } => {
-  try {
-    const dbString = localStorage.getItem(DB_KEY);
-    if (dbString) {
-      const db = JSON.parse(dbString);
-      const userStamps = db.users[username]?.stamps ?? 0;
-      return {
-          stamps: userStamps,
-          isRewardReady: userStamps >= 15,
-      };
-    }
-  } catch (error) {
-    console.error("Failed to parse user stamps from localStorage", error);
-  }
-  return { stamps: 0, isRewardReady: false };
-};
-
-const claimUserReward = (username: string) => {
-  try {
-    const dbString = localStorage.getItem(DB_KEY);
-    if (dbString) {
-      const db = JSON.parse(dbString);
-      if (db.users[username]) {
-        db.users[username].stamps = 0; // Reset stamps after claiming
-        localStorage.setItem(DB_KEY, JSON.stringify(db));
-      }
-    }
-  } catch (error) {
-    console.error("Failed to save user stamps to localStorage", error);
-  }
-};
-
+import { getUser, upsertUser } from '../App';
 
 interface RewardsProps {
   user: string;
-  onLogout: () => void;
+  onLogout?: () => void;
+  onBack?: () => void;
   initialLanguage: 'kh' | 'en';
   onLanguageChange: (lang: 'kh' | 'en') => void;
 }
 
-export const Rewards: React.FC<RewardsProps> = ({ user, onLogout, initialLanguage, onLanguageChange }) => {
-  const [stamps, setStamps] = useState<number>(() => getUserData(user).stamps);
+export const Rewards: React.FC<RewardsProps> = ({ user, onLogout, onBack, initialLanguage, onLanguageChange }) => {
+  const [stamps, setStamps] = useState<number>(0);
   const [language, setLanguage] = useState<'kh' | 'en'>(initialLanguage);
   const [isRewardModalOpen, setIsRewardModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
-    // Periodically check for updates from localStorage, e.g., when an admin adds a stamp
-    const interval = setInterval(() => {
-        const data = getUserData(user);
-        setStamps(data.stamps);
-        if (data.isRewardReady) {
-            setIsRewardModalOpen(true);
+    const fetchUserData = async () => {
+        const userData = await getUser(user);
+        if (userData) {
+            setStamps(userData.stamps);
+            if (userData.stamps >= 15) {
+                setIsRewardModalOpen(true);
+            }
         }
-    }, 2000); // Check every 2 seconds
+    };
+
+    fetchUserData();
+    // Periodically check for updates from localStorage, e.g., when an admin adds a stamp
+    const interval = setInterval(fetchUserData, 2000); // Check every 2 seconds
 
     return () => clearInterval(interval);
   }, [user]);
@@ -68,10 +42,13 @@ export const Rewards: React.FC<RewardsProps> = ({ user, onLogout, initialLanguag
   }, [initialLanguage]);
 
 
-  const startNewCard = () => {
-    claimUserReward(user);
-    setStamps(0);
-    setIsRewardModalOpen(false);
+  const startNewCard = async () => {
+    const userData = await getUser(user);
+    if (userData) {
+      await upsertUser({ ...userData, stamps: 0 });
+      setStamps(0);
+      setIsRewardModalOpen(false);
+    }
   };
 
   const toggleLanguage = () => {
@@ -91,6 +68,7 @@ export const Rewards: React.FC<RewardsProps> = ({ user, onLogout, initialLanguag
         title={t.title}
         username={user}
         onLogout={onLogout}
+        onBack={onBack}
       />
       <main className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 mt-4 text-center">
         <h2 className="text-2xl sm:text-3xl font-bold text-brand-green-800 mb-2">

@@ -41,6 +41,12 @@ export interface Translations {
   resetUserConfirmation: (username: string) => string;
   removeUserButton: string;
   removeUserConfirmation: (username: string) => string;
+  // Share profile
+  shareProfileTitle: (username: string) => string;
+  shareProfileInstructions: string;
+  copyLinkButton: string;
+  copiedButton: string;
+  shareUserButtonLabel: (username: string) => string;
 }
 
 export const translations: Record<'kh' | 'en', Translations> = {
@@ -54,7 +60,7 @@ export const translations: Record<'kh' | 'en', Translations> = {
     startNewCardButton: "ចាប់ផ្តើមកាតថ្មី",
     rewardTitle: "សូមអបអរសាទរ!",
     rewardMessage: "អ្នកបានដោះសោរង្វាន់របស់អ្នកហើយ៖ Blink Box Cup មួយ។ សូមបង្ហាញកាតនេះដើម្បីប្តូរយករង្វាន់។",
-    closeButton: "ចាប់ផ្តើមកាតថ្មី",
+    closeButton: "បិទ",
     languageToggle: "English",
     resetButton: "ចាប់ផ្តើម​សារ​ថ្មី",
     resetConfirmation: "តើអ្នកប្រាកដទេថាចង់ចាប់ផ្តើមសារជាថ្មី? ត្រាបច្ចុប្បន្នរបស់អ្នកនឹងត្រូវបាត់បង់។",
@@ -83,6 +89,11 @@ export const translations: Record<'kh' | 'en', Translations> = {
     resetUserConfirmation: (username) => `តើអ្នកប្រាកដទេថាចង់កំណត់ត្រាឡើងវិញសម្រាប់ ${username}?`,
     removeUserButton: "លុបអ្នកប្រើ",
     removeUserConfirmation: (username) => `តើអ្នកប្រាកដទេថាចង់លុបអ្នកប្រើ ${username}? ទិន្នន័យទាំងអស់នឹងត្រូវបាត់បង់ជាអចិន្ត្រៃយ៍។`,
+    shareProfileTitle: (username) => `តំណសម្រាប់ ${username}`,
+    shareProfileInstructions: "អ្នកប្រើប្រាស់អាចស្កេនកូដ QR នេះ ឬប្រើតំណដើម្បីបើកកាតរបស់ពួកគេដោយផ្ទាល់។",
+    copyLinkButton: "ចម្លងតំណ",
+    copiedButton: "បានចម្លង!",
+    shareUserButtonLabel: (username) => `ចែករំលែកកាតសម្រាប់ ${username}`,
   },
   en: {
     title: "Coffee Rewards Card",
@@ -94,7 +105,7 @@ export const translations: Record<'kh' | 'en', Translations> = {
     startNewCardButton: "Start New Card",
     rewardTitle: "Congratulations!",
     rewardMessage: "You've unlocked your reward: a free Blink Box Cup. Please show this to redeem.",
-    closeButton: "Start New Card",
+    closeButton: "Close",
     languageToggle: "ខ្មែរ",
     resetButton: "Start Over",
     resetConfirmation: "Are you sure you want to start over? Your current stamps will be lost.",
@@ -123,5 +134,10 @@ export const translations: Record<'kh' | 'en', Translations> = {
     resetUserConfirmation: (username) => `Are you sure you want to reset the stamps for ${username}?`,
     removeUserButton: "Remove",
     removeUserConfirmation: (username) => `Are you sure you want to remove user ${username}? All their data will be permanently lost.`,
+    shareProfileTitle: (username) => `Link for ${username}`,
+    shareProfileInstructions: "The user can scan this QR code or use the link to open their card directly.",
+    copyLinkButton: "Copy Link",
+    copiedButton: "Copied!",
+    shareUserButtonLabel: (username) => `Share card for ${username}`,
   },
 };
