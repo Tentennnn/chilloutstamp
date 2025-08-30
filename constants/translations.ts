@@ -51,7 +51,7 @@ export interface Translations {
 
 export const translations: Record<'kh' | 'en', Translations> = {
   kh: {
-    title: "កាតสะสมពិន្ទុកាแฟ",
+    title: "ការសន្សំពិន្ទុ",
     progressText: (count, total) => `កែវទី ${count} នៃ ${total}`,
     instructions: "ប្រមូលត្រា 15 ដើម្បីទទួលបាន Blink Box Cup មួយ! សូមសួរ​បុគ្គលិក​ដើម្បី​បន្ថែម​ត្រា។",
     addStampButton: "បន្ថែមត្រា",
