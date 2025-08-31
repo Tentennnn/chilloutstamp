@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { User, getAllUsers, getUser, upsertUser, deleteUser, clearUsers } from '../App';
 import { translations, Translations } from '../constants/translations';
 import { LanguageSwitcher } from './LanguageSwitcher';
@@ -151,6 +151,7 @@ const ImportConfirmationModal: React.FC<ImportModalProps> = ({ isOpen, onClose, 
     )
 }
 
+type SortOption = 'username-asc' | 'username-desc' | 'stamps-asc' | 'stamps-desc';
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLogout, language, onLanguageChange, onViewUser }) => {
   const [users, setUsers] = useState<User[]>([]);
@@ -164,11 +165,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
   const [updatedStamp, setUpdatedStamp] = useState<{ username: string; change: 'add' | 'remove' } | null>(null);
   const [importData, setImportData] = useState<User[] | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortOption, setSortOption] = useState<SortOption>('username-asc');
 
 
   const fetchUsers = async () => {
     const allUsers = await getAllUsers();
-    setUsers(allUsers.sort((a, b) => a.username.localeCompare(b.username)));
+    setUsers(allUsers);
   };
 
   useEffect(() => {
@@ -176,6 +179,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
   }, []);
 
   const t = translations[language];
+
+  const displayedUsers = useMemo(() => {
+    return users
+      .filter(user => user.username.toLowerCase().includes(searchQuery.toLowerCase()))
+      .sort((a, b) => {
+        switch (sortOption) {
+          case 'username-asc':
+            return a.username.localeCompare(b.username);
+          case 'username-desc':
+            return b.username.localeCompare(a.username);
+          case 'stamps-asc':
+            return a.stamps - b.stamps;
+          case 'stamps-desc':
+            return b.stamps - a.stamps;
+          default:
+            return 0;
+        }
+      });
+  }, [users, searchQuery, sortOption]);
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -387,63 +409,104 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
         {/* Existing Users Section */}
         <section>
           <h2 className="text-xl font-bold text-brand-green-800 mb-4">{t.existingUsersTitle}</h2>
+          
+          {users.length > 0 && (
+            <div className="flex flex-col sm:flex-row gap-4 mb-4">
+              <div className="relative flex-grow">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                  <svg className="w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={t.searchUsersPlaceholder}
+                  className="w-full pl-10 pr-4 py-2 border border-brand-green-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green-500"
+                />
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <label htmlFor="sort-select" className="text-sm font-medium text-brand-green-700">{t.sortByLabel}</label>
+                <select
+                  id="sort-select"
+                  value={sortOption}
+                  onChange={(e) => setSortOption(e.target.value as SortOption)}
+                  className="px-3 py-2 border border-brand-green-200 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-green-500"
+                >
+                  <option value="username-asc">{t.sortUsernameAZ}</option>
+                  <option value="username-desc">{t.sortUsernameZA}</option>
+                  <option value="stamps-asc">{t.sortStampsLowHigh}</option>
+                  <option value="stamps-desc">{t.sortStampsHighLow}</option>
+                </select>
+              </div>
+            </div>
+          )}
+
           {users.length > 0 ? (
             <div className="max-h-96 overflow-y-auto bg-brand-green-50 p-3 sm:p-4 rounded-xl space-y-3">
-              {users.map((user) => (
-                <div key={user.username} className="flex flex-col sm:flex-row justify-between items-center bg-white p-3 rounded-lg shadow-sm gap-3">
-                  <div className="flex-1 text-center sm:text-left">
-                    <button 
-                      onClick={() => onViewUser(user.username)}
-                      className="font-semibold text-brand-green-900 hover:text-brand-green-600 hover:underline focus:outline-none transition-colors"
-                      aria-label={`View ${user.username}'s card`}
-                    >
-                      {user.username}
-                    </button>
-                    <span className={`inline-block text-sm sm:inline sm:ml-3 text-white bg-brand-green-700 px-3 py-1 rounded-full ${
-                      updatedStamp?.username === user.username ? `stamp-${updatedStamp.change}` : ''
-                    }`}>
-                      {`${user.stamps} / 15`}
-                    </span>
+              {displayedUsers.length > 0 ? (
+                displayedUsers.map((user) => (
+                  <div key={user.username} className="flex flex-col sm:flex-row justify-between items-center bg-white p-3 rounded-lg shadow-sm gap-3">
+                    <div className="flex-1 text-center sm:text-left">
+                      <span className="font-semibold text-brand-green-900">
+                        {user.username}
+                      </span>
+                      <span className={`inline-block text-sm sm:inline sm:ml-3 text-white bg-brand-green-700 px-3 py-1 rounded-full ${
+                        updatedStamp?.username === user.username ? `stamp-${updatedStamp.change}` : ''
+                      }`}>
+                        {`${user.stamps} / 15`}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-end">
+                        <button 
+                            onClick={() => handleStampChange(user.username, -1)} 
+                            disabled={user.stamps === 0}
+                            className="w-8 h-8 font-bold text-lg bg-brand-green-100 text-brand-green-800 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-brand-green-200 transition-colors"
+                            aria-label={`Remove stamp from ${user.username}`}
+                        >
+                            -
+                        </button>
+                        <button 
+                            onClick={() => handleStampChange(user.username, 1)} 
+                            disabled={user.stamps >= 15}
+                            className="w-8 h-8 font-bold text-lg bg-brand-green-100 text-brand-green-800 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-brand-green-200 transition-colors"
+                            aria-label={`Add stamp to ${user.username}`}
+                        >
+                            +
+                        </button>
+                        <button
+                          onClick={() => onViewUser(user.username)}
+                          className="px-3 py-1 text-xs font-semibold text-indigo-700 bg-indigo-100 rounded-md hover:bg-indigo-200 transition-colors"
+                          aria-label={`View card for ${user.username}`}
+                        >
+                          {t.viewCardButton}
+                        </button>
+                        <button
+                          onClick={() => setShareModalUser(user.username)}
+                          className="px-3 py-1 text-xs font-semibold text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors"
+                          aria-label={t.shareUserButtonLabel(user.username)}
+                        >
+                          {t.shareButton}
+                        </button>
+                        <button 
+                            onClick={() => setConfirmation({ action: 'reset', username: user.username })}
+                            className="px-3 py-1 text-xs font-semibold text-amber-700 bg-amber-100 rounded-md hover:bg-amber-200 transition-colors"
+                        >
+                            {t.resetUserStampsButton}
+                        </button>
+                        <button
+                          onClick={() => setConfirmation({ action: 'remove', username: user.username })}
+                          className="px-3 py-1 text-xs font-semibold text-red-700 bg-red-100 rounded-md hover:bg-red-200 transition-colors"
+                        >
+                          {t.removeUserButton}
+                        </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                      <button 
-                          onClick={() => handleStampChange(user.username, -1)} 
-                          disabled={user.stamps === 0}
-                          className="w-8 h-8 font-bold text-lg bg-brand-green-100 text-brand-green-800 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-brand-green-200 transition-colors"
-                          aria-label={`Remove stamp from ${user.username}`}
-                      >
-                          -
-                      </button>
-                      <button 
-                          onClick={() => handleStampChange(user.username, 1)} 
-                          disabled={user.stamps >= 15}
-                          className="w-8 h-8 font-bold text-lg bg-brand-green-100 text-brand-green-800 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-brand-green-200 transition-colors"
-                          aria-label={`Add stamp to ${user.username}`}
-                      >
-                          +
-                      </button>
-                      <button
-                        onClick={() => setShareModalUser(user.username)}
-                        className="px-3 py-1 text-xs font-semibold text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors"
-                        aria-label={t.shareUserButtonLabel(user.username)}
-                      >
-                        {t.shareButton}
-                      </button>
-                      <button 
-                          onClick={() => setConfirmation({ action: 'reset', username: user.username })}
-                          className="px-3 py-1 text-xs font-semibold text-amber-700 bg-amber-100 rounded-md hover:bg-amber-200 transition-colors"
-                      >
-                          {t.resetUserStampsButton}
-                      </button>
-                      <button
-                        onClick={() => setConfirmation({ action: 'remove', username: user.username })}
-                        className="px-3 py-1 text-xs font-semibold text-red-700 bg-red-100 rounded-md hover:bg-red-200 transition-colors"
-                      >
-                        {t.removeUserButton}
-                      </button>
-                  </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-brand-green-600 text-center py-4">No users found matching your search.</p>
+              )}
             </div>
           ) : (
             <p className="text-brand-green-600 text-center sm:text-left">No users created yet.</p>

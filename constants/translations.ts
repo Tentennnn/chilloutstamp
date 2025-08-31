@@ -52,6 +52,7 @@ export interface Translations {
   copyLinkButton: string;
   copiedButton: string;
   shareUserButtonLabel: (username: string) => string;
+  viewCardButton: string;
   shareButton: string;
   // Import / Export
   importButton: string;
@@ -62,6 +63,13 @@ export interface Translations {
   replaceButton: string;
   importSuccessMessage: (count: number) => string;
   importErrorMessage: string;
+  // Search and Sort
+  searchUsersPlaceholder: string;
+  sortByLabel: string;
+  sortUsernameAZ: string;
+  sortUsernameZA: string;
+  sortStampsLowHigh: string;
+  sortStampsHighLow: string;
 }
 
 export const translations: Record<'kh' | 'en', Translations> = {
@@ -114,6 +122,7 @@ export const translations: Record<'kh' | 'en', Translations> = {
     copyLinkButton: "ចម្លងតំណ",
     copiedButton: "បានចម្លង!",
     shareUserButtonLabel: (username) => `ចែករំលែកកាតសម្រាប់ ${username}`,
+    viewCardButton: "មើលកាត",
     shareButton: "ចែករំលែក",
     importButton: "នាំចូលទិន្នន័យ",
     exportButton: "នាំចេញទិន្នន័យ",
@@ -123,6 +132,12 @@ export const translations: Record<'kh' | 'en', Translations> = {
     replaceButton: "ជំនួស",
     importSuccessMessage: (count) => `បាននាំចូលអ្នកប្រើ ${count} នាក់ដោយជោគជ័យ។`,
     importErrorMessage: "ឯកសារមិនត្រឹមត្រូវ ឬទិន្នន័យខូច។ សូមព្យាយាមម្តងទៀត។",
+    searchUsersPlaceholder: "ស្វែងរកអ្នកប្រើប្រាស់...",
+    sortByLabel: "តម្រៀបតាម:",
+    sortUsernameAZ: "ឈ្មោះអ្នកប្រើ (A-Z)",
+    sortUsernameZA: "ឈ្មោះអ្នកប្រើ (Z-A)",
+    sortStampsLowHigh: "ត្រា (តិចទៅច្រើន)",
+    sortStampsHighLow: "ត្រា (ច្រើនទៅតិច)",
   },
   en: {
     title: "Coffee Rewards Card",
@@ -173,6 +188,7 @@ export const translations: Record<'kh' | 'en', Translations> = {
     copyLinkButton: "Copy Link",
     copiedButton: "Copied!",
     shareUserButtonLabel: (username) => `Share card for ${username}`,
+    viewCardButton: "View Card",
     shareButton: "Share",
     importButton: "Import Data",
     exportButton: "Export Data",
@@ -182,5 +198,11 @@ export const translations: Record<'kh' | 'en', Translations> = {
     replaceButton: "Replace",
     importSuccessMessage: (count) => `Successfully imported ${count} users.`,
     importErrorMessage: "Invalid file or corrupted data. Please try again.",
+    searchUsersPlaceholder: "Search users...",
+    sortByLabel: "Sort by:",
+    sortUsernameAZ: "Username (A-Z)",
+    sortUsernameZA: "Username (Z-A)",
+    sortStampsLowHigh: "Stamps (Low to High)",
+    sortStampsHighLow: "Stamps (High to Low)",
   },
 };

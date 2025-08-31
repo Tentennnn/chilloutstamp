@@ -162,16 +162,14 @@ const App: React.FC = () => {
         if (currentSession.user || currentSession.admin) {
           setSession({ user: currentSession.user, admin: currentSession.admin });
         } else {
-          const path = window.location.pathname;
-          // Match /username/profile or /username/profile/
-          const match = path.match(/^\/([^/]+)\/profile\/?$/);
-          const userFromUrl = match ? decodeURIComponent(match[1]) : null;
+          const searchParams = new URLSearchParams(window.location.search);
+          const userFromUrl = searchParams.get('user');
 
           if (userFromUrl) {
             // Fire and forget login attempt
             handleUserLogin(userFromUrl.trim()).then(() => {
               // Always clean up URL to base path after deep link attempt
-              window.history.replaceState({}, document.title, '/');
+              window.history.replaceState({}, document.title, window.location.pathname);
             });
           }
         }
