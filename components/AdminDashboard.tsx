@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
-import { User, getAllUsers, getUser, upsertUser, deleteUser } from '../App';
-import { translations } from '../constants/translations';
+import React, { useState, useEffect, useRef } from 'react';
+import { User, getAllUsers, getUser, upsertUser, deleteUser, clearUsers } from '../App';
+import { translations, Translations } from '../constants/translations';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { ShareProfileModal } from './ShareProfileModal';
 
@@ -13,11 +13,158 @@ interface AdminDashboardProps {
   onViewUser: (username: string) => void;
 }
 
+// --- Local Components for Modals and Toasts ---
+
+interface ToastProps {
+    message: string;
+    type: 'success' | 'error';
+    onDismiss: () => void;
+}
+
+const Toast: React.FC<ToastProps> = ({ message, type, onDismiss }) => {
+    useEffect(() => {
+        const timer = setTimeout(onDismiss, 3000);
+        return () => clearTimeout(timer);
+    }, [onDismiss]);
+
+    const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+
+    return (
+        <div className="fixed top-5 right-5 z-50 animate-slide-in">
+            <div className={`flex items-center p-4 text-white rounded-lg shadow-lg ${bgColor}`}>
+                <p>{message}</p>
+                <button onClick={onDismiss} className="ml-4 text-xl font-bold">&times;</button>
+            </div>
+            <style>{`
+                @keyframes slideIn {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+                .animate-slide-in { animation: slideIn 0.3s ease-out forwards; }
+            `}</style>
+        </div>
+    );
+};
+
+interface ConfirmationModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+    title: string;
+    children: React.ReactNode;
+    t: Translations;
+    variant?: 'danger' | 'default';
+}
+
+const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ isOpen, onClose, onConfirm, title, children, t, variant = 'default' }) => {
+    if (!isOpen) return null;
+    
+    const confirmButtonColor = variant === 'danger'
+        ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
+        : 'bg-brand-green-800 hover:bg-brand-green-900 focus:ring-brand-green-300';
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50" onClick={onClose}>
+            <div
+                className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 max-w-sm w-full text-center relative transform transition-all opacity-0 animate-fade-in-scale"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <h3 className="text-xl font-bold text-brand-green-900 mb-2">{title}</h3>
+                <div className="text-brand-green-700 mb-6">{children}</div>
+                <div className="flex justify-center gap-4">
+                    <button
+                        onClick={onClose}
+                        className="w-full py-2 px-4 text-lg font-bold bg-gray-200 text-gray-800 rounded-xl hover:bg-gray-300 transition-colors focus:outline-none focus:ring-4 focus:ring-gray-300"
+                    >
+                        {t.cancelButton}
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        className={`w-full py-2 px-4 text-lg font-bold text-white rounded-xl transition-colors focus:outline-none focus:ring-4 ${confirmButtonColor}`}
+                    >
+                        {t.confirmButton}
+                    </button>
+                </div>
+            </div>
+             <style>{`
+                @keyframes fadeInScale {
+                  from { transform: scale(0.95); opacity: 0; }
+                  to { transform: scale(1); opacity: 1; }
+                }
+                .animate-fade-in-scale {
+                    animation: fadeInScale 0.3s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+                }
+            `}</style>
+        </div>
+    );
+};
+
+interface ImportModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: (mode: 'merge' | 'replace') => void;
+    t: Translations;
+}
+
+const ImportConfirmationModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onConfirm, t }) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50" onClick={onClose}>
+            <div
+                className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 max-w-md w-full text-center relative transform transition-all opacity-0 animate-fade-in-scale"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <h3 className="text-xl font-bold text-brand-green-900 mb-2">{t.importModalTitle}</h3>
+                <p className="text-brand-green-700 mb-6">{t.importModalMessage}</p>
+                <div className="flex flex-col sm:flex-row justify-center gap-4">
+                    <button
+                        onClick={() => onConfirm('merge')}
+                        className="w-full py-3 px-4 text-lg font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors focus:outline-none focus:ring-4 focus:ring-blue-300"
+                    >
+                        {t.mergeButton}
+                    </button>
+                    <button
+                        onClick={() => onConfirm('replace')}
+                        className="w-full py-3 px-4 text-lg font-bold text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors focus:outline-none focus:ring-4 focus:ring-red-400"
+                    >
+                        {t.replaceButton}
+                    </button>
+                </div>
+                 <button
+                    onClick={onClose}
+                    className="w-full sm:w-auto mt-4 py-2 px-4 text-sm font-semibold text-gray-600 hover:underline"
+                >
+                    {t.cancelButton}
+                </button>
+            </div>
+            <style>{`
+                @keyframes fadeInScale {
+                  from { transform: scale(0.95); opacity: 0; }
+                  to { transform: scale(1); opacity: 1; }
+                }
+                .animate-fade-in-scale {
+                    animation: fadeInScale 0.3s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+                }
+            `}</style>
+        </div>
+    )
+}
+
+
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLogout, language, onLanguageChange, onViewUser }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [newUsername, setNewUsername] = useState('');
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; content: string } | null>(null);
   const [shareModalUser, setShareModalUser] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; content: string } | null>(null);
+  const [confirmation, setConfirmation] = useState<{
+      action: 'reset' | 'remove';
+      username: string;
+  } | null>(null);
+  const [updatedStamp, setUpdatedStamp] = useState<{ username: string; change: 'add' | 'remove' } | null>(null);
+  const [importData, setImportData] = useState<User[] | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
 
   const fetchUsers = async () => {
     const allUsers = await getAllUsers();
@@ -38,15 +185,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
     const existingUser = await getUser(trimmedUsername);
 
     if (existingUser) {
-      setMessage({ type: 'error', content: t.userExistsError(trimmedUsername) });
+      setToast({ type: 'error', content: t.userExistsError(trimmedUsername) });
     } else {
       await upsertUser({ username: trimmedUsername, stamps: 0, language: 'kh' });
-      setMessage({ type: 'success', content: t.userCreatedSuccess(trimmedUsername) });
+      setToast({ type: 'success', content: t.userCreatedSuccess(trimmedUsername) });
       setNewUsername('');
       fetchUsers(); // Refresh list
     }
-    
-    setTimeout(() => setMessage(null), 3000);
   };
   
   const handleStampChange = async (username: string, amount: number) => {
@@ -54,38 +199,157 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
     if (user) {
         const newStamps = Math.max(0, Math.min(15, user.stamps + amount));
         await upsertUser({ ...user, stamps: newStamps });
-        fetchUsers(); // Refresh list
+        fetchUsers();
+        
+        setUpdatedStamp({ username, change: amount > 0 ? 'add' : 'remove' });
+        setTimeout(() => setUpdatedStamp(null), 500);
     }
   };
 
   const handleResetUser = async (username: string) => {
-      if (window.confirm(t.resetUserConfirmation(username))) {
-          const user = await getUser(username);
-          if (user) {
-              await upsertUser({ ...user, stamps: 0 });
-              fetchUsers();
-          }
-      }
+    const user = await getUser(username);
+    if (user) {
+        await upsertUser({ ...user, stamps: 0 });
+        fetchUsers();
+    }
+    setConfirmation(null);
   };
 
   const handleRemoveUser = async (username: string) => {
-    if (window.confirm(t.removeUserConfirmation(username))) {
-      await deleteUser(username);
-      fetchUsers();
-    }
+    await deleteUser(username);
+    fetchUsers();
+    setConfirmation(null);
+  };
+
+  const handleConfirmation = () => {
+      if (!confirmation) return;
+      if (confirmation.action === 'reset') {
+          handleResetUser(confirmation.username);
+      } else if (confirmation.action === 'remove') {
+          handleRemoveUser(confirmation.username);
+      }
   };
 
   const toggleLanguage = () => {
     onLanguageChange(language === 'kh' ? 'en' : 'kh');
   };
 
+  const handleExport = async () => {
+      const allUsers = await getAllUsers();
+      const dataStr = JSON.stringify(allUsers, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'coffee-rewards-backup.json';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+  };
+
+  const handleTriggerImport = () => {
+      fileInputRef.current?.click();
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+          try {
+              const text = e.target?.result;
+              if (typeof text !== 'string') throw new Error("File is not text");
+              const data = JSON.parse(text);
+
+              // Basic validation
+              if (Array.isArray(data) && (data.length === 0 || (data[0].username && typeof data[0].stamps === 'number'))) {
+                  setImportData(data);
+              } else {
+                  throw new Error("Invalid data format");
+              }
+          } catch (error) {
+              setToast({ type: 'error', content: t.importErrorMessage });
+              console.error("Import error:", error);
+          }
+      };
+      reader.readAsText(file);
+      // Reset file input to allow re-uploading the same file
+      event.target.value = '';
+  };
+  
+  const handleImportConfirm = async (mode: 'merge' | 'replace') => {
+    if (!importData) return;
+
+    if (mode === 'replace') {
+        await clearUsers();
+    }
+
+    for (const user of importData) {
+        // Ensure data integrity before upserting
+        if(user.username && typeof user.stamps === 'number') {
+           await upsertUser({
+               username: user.username.toLowerCase(),
+               stamps: Math.max(0, Math.min(15, user.stamps)), // Clamp stamps
+               language: user.language || 'kh'
+           });
+        }
+    }
+    
+    setToast({ type: 'success', content: t.importSuccessMessage(importData.length) });
+    setImportData(null);
+    fetchUsers();
+  };
+
+
   return (
     <div className="w-full max-w-2xl mx-auto p-4">
+      {toast && <Toast message={toast.content} type={toast.type} onDismiss={() => setToast(null)} />}
+      <ConfirmationModal
+          isOpen={!!confirmation}
+          onClose={() => setConfirmation(null)}
+          onConfirm={handleConfirmation}
+          title={confirmation?.action === 'reset' ? t.resetUserModalTitle : t.removeUserModalTitle}
+          t={t}
+          variant={confirmation?.action === 'remove' ? 'danger' : 'default'}
+      >
+          {confirmation && <p>
+              {confirmation.action === 'reset' 
+                  ? t.resetUserModalMessage(confirmation.username) 
+                  : t.removeUserModalMessage(confirmation.username)}
+          </p>}
+      </ConfirmationModal>
+
+      <ImportConfirmationModal
+        isOpen={!!importData}
+        onClose={() => setImportData(null)}
+        onConfirm={handleImportConfirm}
+        t={t}
+      />
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileSelect}
+        accept=".json,application/json"
+        style={{ display: 'none' }}
+      />
+
       <header className="flex flex-col sm:flex-row justify-between items-center w-full mb-6 gap-2">
         <h1 className="text-2xl sm:text-3xl font-bold text-brand-green-900">{t.adminDashboardTitle}</h1>
         <div className="flex items-center gap-2 sm:gap-3 text-sm">
           <span className="text-brand-green-800 font-semibold">{t.welcomeMessage(adminUser)}</span>
           <LanguageSwitcher currentLanguage={language} onToggle={toggleLanguage} />
+          <button
+              onClick={handleExport}
+              className="px-3 py-2 font-semibold bg-blue-100 text-blue-800 rounded-lg shadow-sm hover:bg-blue-200 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              aria-label={t.exportButton}
+          >{t.exportButton}</button>
+          <button
+              onClick={handleTriggerImport}
+              className="px-3 py-2 font-semibold bg-green-100 text-green-800 rounded-lg shadow-sm hover:bg-green-200 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              aria-label={t.importButton}
+          >{t.importButton}</button>
           <button
             onClick={onLogout}
             className="px-3 py-2 font-semibold bg-white text-brand-green-700 rounded-lg shadow-sm hover:bg-brand-green-50 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-green-500"
@@ -118,7 +382,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
               {t.createUserButton}
             </button>
           </form>
-          {message && <p className={`mt-3 text-sm text-center sm:text-left ${message.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>{message.content}</p>}
         </section>
 
         {/* Existing Users Section */}
@@ -136,7 +399,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                     >
                       {user.username}
                     </button>
-                    <span className="block text-sm sm:inline sm:ml-3 text-white bg-brand-green-700 px-3 py-1 rounded-full">{`${user.stamps} / 15`}</span>
+                    <span className={`inline-block text-sm sm:inline sm:ml-3 text-white bg-brand-green-700 px-3 py-1 rounded-full ${
+                      updatedStamp?.username === user.username ? `stamp-${updatedStamp.change}` : ''
+                    }`}>
+                      {`${user.stamps} / 15`}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                       <button 
@@ -157,21 +424,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                       </button>
                       <button
                         onClick={() => setShareModalUser(user.username)}
-                        className="p-2 text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors"
+                        className="px-3 py-1 text-xs font-semibold text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors"
                         aria-label={t.shareUserButtonLabel(user.username)}
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd" />
-                        </svg>
+                        {t.shareButton}
                       </button>
                       <button 
-                          onClick={() => handleResetUser(user.username)}
+                          onClick={() => setConfirmation({ action: 'reset', username: user.username })}
                           className="px-3 py-1 text-xs font-semibold text-amber-700 bg-amber-100 rounded-md hover:bg-amber-200 transition-colors"
                       >
                           {t.resetUserStampsButton}
                       </button>
                       <button
-                        onClick={() => handleRemoveUser(user.username)}
+                        onClick={() => setConfirmation({ action: 'remove', username: user.username })}
                         className="px-3 py-1 text-xs font-semibold text-red-700 bg-red-100 rounded-md hover:bg-red-200 transition-colors"
                       >
                         {t.removeUserButton}
@@ -193,6 +458,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
           t={t}
         />
       )}
+       <style>{`
+          @keyframes stamp-add-anim {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); background-color: #47826e; } /* brand-green-600 */
+            100% { transform: scale(1); }
+          }
+          .stamp-add {
+            animation: stamp-add-anim 0.5s ease-in-out;
+          }
+
+          @keyframes stamp-remove-anim {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.9); background-color: #264a3e; } /* brand-green-800 */
+            100% { transform: scale(1); }
+          }
+          .stamp-remove {
+            animation: stamp-remove-anim 0.5s ease-in-out;
+          }
+      `}</style>
     </div>
   );
 };

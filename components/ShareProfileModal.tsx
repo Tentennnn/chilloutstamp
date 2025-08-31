@@ -13,7 +13,7 @@ export const ShareProfileModal: React.FC<ShareProfileModalProps> = ({ isOpen, on
   if (!isOpen) return null;
 
   const [copied, setCopied] = useState(false);
-  const profileUrl = `${window.location.origin}${window.location.pathname}?user=${encodeURIComponent(username)}`;
+  const profileUrl = `${window.location.origin}/${encodeURIComponent(username)}/profile`;
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(profileUrl)}`;
 
   const handleCopy = () => {

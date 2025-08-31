@@ -98,6 +98,13 @@ export async function deleteUser(username: string): Promise<void> {
   await promisifyRequest(store.delete(username));
 }
 
+export async function clearUsers(): Promise<void> {
+  const db = await openDb();
+  const transaction = db.transaction(USERS_STORE, 'readwrite');
+  const store = transaction.objectStore(USERS_STORE);
+  await promisifyRequest(store.clear());
+}
+
 // Session Functions
 export async function getSession(): Promise<Session> {
   const db = await openDb();
@@ -133,14 +140,16 @@ const App: React.FC = () => {
       if (currentSession.user || currentSession.admin) {
         setSession({ user: currentSession.user, admin: currentSession.admin });
       } else {
-        const urlParams = new URLSearchParams(window.location.search);
-        const userFromUrl = urlParams.get('user');
+        const path = window.location.pathname;
+        // Match /username/profile or /username/profile/
+        const match = path.match(/^\/([^/]+)\/profile\/?$/);
+        const userFromUrl = match ? decodeURIComponent(match[1]) : null;
+
         if (userFromUrl) {
           // Fire and forget login attempt
-          handleUserLogin(userFromUrl.trim()).then(loginSuccess => {
-              if (loginSuccess) {
-                window.history.replaceState({}, document.title, window.location.pathname);
-              }
+          handleUserLogin(userFromUrl.trim()).then(() => {
+            // Always clean up URL to base path after deep link attempt
+            window.history.replaceState({}, document.title, '/');
           });
         }
       }
@@ -175,15 +184,15 @@ const App: React.FC = () => {
     syncLanguage();
   }, [session.user]);
 
-  const handleUserLogin = async (username: string): Promise<boolean> => {
+  const handleUserLogin = async (username: string): Promise<{ success: boolean; error?: string }> => {
     const lowerCaseUsername = username.toLowerCase();
     const user = await getUser(lowerCaseUsername);
     if (user) {
       await setSession({ user: lowerCaseUsername, admin: null });
       setSession({ user: lowerCaseUsername, admin: null });
-      return true;
+      return { success: true };
     }
-    return false;
+    return { success: false, error: 'user_not_found' };
   };
   
   const handleAdminLogin = async (username: string) => {

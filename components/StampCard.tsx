@@ -1,5 +1,5 @@
 import React from 'react';
-import { CoffeeCupIcon } from './CoffeeCupIcon';
+import { CoffeeCupIcon } from '../CoffeeCupIcon';
 
 interface StampCardProps {
   stamps: number;

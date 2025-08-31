@@ -18,6 +18,7 @@ export interface Translations {
   loginInstructions: string;
   usernamePlaceholder: string;
   loginButton: string;
+  loggingIn: string;
   logoutButton: string;
   welcomeMessage: (username: string) => string;
   userNotFoundError: string;
@@ -38,20 +39,34 @@ export interface Translations {
   userExistsError: (username: string) => string;
   backButton: string;
   resetUserStampsButton: string;
-  resetUserConfirmation: (username: string) => string;
   removeUserButton: string;
-  removeUserConfirmation: (username: string) => string;
+  confirmButton: string;
+  cancelButton: string;
+  resetUserModalTitle: string;
+  resetUserModalMessage: (username: string) => string;
+  removeUserModalTitle: string;
+  removeUserModalMessage: (username: string) => string;
   // Share profile
   shareProfileTitle: (username: string) => string;
   shareProfileInstructions: string;
   copyLinkButton: string;
   copiedButton: string;
   shareUserButtonLabel: (username: string) => string;
+  shareButton: string;
+  // Import / Export
+  importButton: string;
+  exportButton: string;
+  importModalTitle: string;
+  importModalMessage: string;
+  mergeButton: string;
+  replaceButton: string;
+  importSuccessMessage: (count: number) => string;
+  importErrorMessage: string;
 }
 
 export const translations: Record<'kh' | 'en', Translations> = {
   kh: {
-    title: "ការសន្សំពិន្ទុ",
+    title: "កាតสะสมពិន្ទុកាแฟ",
     progressText: (count, total) => `កែវទី ${count} នៃ ${total}`,
     instructions: "ប្រមូលត្រា 15 ដើម្បីទទួលបាន Blink Box Cup មួយ! សូមសួរ​បុគ្គលិក​ដើម្បី​បន្ថែម​ត្រា។",
     addStampButton: "បន្ថែមត្រា",
@@ -68,6 +83,7 @@ export const translations: Record<'kh' | 'en', Translations> = {
     loginInstructions: "បញ្ចូលឈ្មោះអ្នកប្រើរបស់អ្នក ដើម្បីរក្សាទុកត្រារបស់អ្នក។",
     usernamePlaceholder: "ឈ្មោះ​អ្នកប្រើប្រាស់",
     loginButton: "ចូល",
+    loggingIn: "កំពុងចូល...",
     logoutButton: "ចាកចេញ",
     welcomeMessage: (username) => `សួស្តី, ${username}`,
     userNotFoundError: "រកមិនឃើញអ្នកប្រើទេ។ សូមស្នើសុំឱ្យអ្នកគ្រប់គ្រងបង្កើតគណនីសម្រាប់អ្នក។",
@@ -86,14 +102,27 @@ export const translations: Record<'kh' | 'en', Translations> = {
     userExistsError: (username) => `អ្នកប្រើ ${username} មានរួចហើយ។`,
     backButton: "ត្រឡប់ក្រោយ",
     resetUserStampsButton: "កំណត់ឡើងវិញ",
-    resetUserConfirmation: (username) => `តើអ្នកប្រាកដទេថាចង់កំណត់ត្រាឡើងវិញសម្រាប់ ${username}?`,
     removeUserButton: "លុបអ្នកប្រើ",
-    removeUserConfirmation: (username) => `តើអ្នកប្រាកដទេថាចង់លុបអ្នកប្រើ ${username}? ទិន្នន័យទាំងអស់នឹងត្រូវបាត់បង់ជាអចិន្ត្រៃយ៍។`,
+    confirmButton: "បញ្ជាក់",
+    cancelButton: "បោះបង់",
+    resetUserModalTitle: "កំណត់ត្រាឡើងវិញ?",
+    resetUserModalMessage: (username) => `តើអ្នកប្រាកដទេថាចង់កំណត់ត្រាសម្រាប់ ${username} ឡើងវិញ? ចំនួនត្រារបស់ពួកគេនឹងក្លាយជា 0។`,
+    removeUserModalTitle: "លុបអ្នកប្រើ?",
+    removeUserModalMessage: (username) => `តើអ្នកប្រាកដទេថាចង់លុបអ្នកប្រើ ${username} ជាអចិន្ត្រៃយ៍? ទិន្នន័យទាំងអស់នឹងត្រូវបាត់បង់។`,
     shareProfileTitle: (username) => `តំណសម្រាប់ ${username}`,
     shareProfileInstructions: "អ្នកប្រើប្រាស់អាចស្កេនកូដ QR នេះ ឬប្រើតំណដើម្បីបើកកាតរបស់ពួកគេដោយផ្ទាល់។",
     copyLinkButton: "ចម្លងតំណ",
     copiedButton: "បានចម្លង!",
     shareUserButtonLabel: (username) => `ចែករំលែកកាតសម្រាប់ ${username}`,
+    shareButton: "ចែករំលែក",
+    importButton: "នាំចូលទិន្នន័យ",
+    exportButton: "នាំចេញទិន្នន័យ",
+    importModalTitle: "នាំចូលទិន្នន័យអ្នកប្រើប្រាស់",
+    importModalMessage: "តើអ្នកចង់បញ្ចូលទិន្នន័យថ្មីជាមួយទិន្នន័យដែលមានស្រាប់ ឬជំនួសទិន្នន័យបច្ចុប្បន្នទាំងអស់?",
+    mergeButton: "បញ្ចូលគ្នា",
+    replaceButton: "ជំនួស",
+    importSuccessMessage: (count) => `បាននាំចូលអ្នកប្រើ ${count} នាក់ដោយជោគជ័យ។`,
+    importErrorMessage: "ឯកសារមិនត្រឹមត្រូវ ឬទិន្នន័យខូច។ សូមព្យាយាមម្តងទៀត។",
   },
   en: {
     title: "Coffee Rewards Card",
@@ -113,6 +142,7 @@ export const translations: Record<'kh' | 'en', Translations> = {
     loginInstructions: "Enter your username to save your stamps.",
     usernamePlaceholder: "Username",
     loginButton: "Login",
+    loggingIn: "Logging in...",
     logoutButton: "Log Out",
     welcomeMessage: (username) => `Hi, ${username}`,
     userNotFoundError: "User not found. Please ask an admin to create an account for you.",
@@ -131,13 +161,26 @@ export const translations: Record<'kh' | 'en', Translations> = {
     userExistsError: (username) => `User ${username} already exists.`,
     backButton: "Back",
     resetUserStampsButton: "Reset",
-    resetUserConfirmation: (username) => `Are you sure you want to reset the stamps for ${username}?`,
     removeUserButton: "Remove",
-    removeUserConfirmation: (username) => `Are you sure you want to remove user ${username}? All their data will be permanently lost.`,
+    confirmButton: "Confirm",
+    cancelButton: "Cancel",
+    resetUserModalTitle: "Reset Stamps?",
+    resetUserModalMessage: (username) => `Are you sure you want to reset the stamps for ${username}? Their count will be set to 0.`,
+    removeUserModalTitle: "Remove User?",
+    removeUserModalMessage: (username) => `Are you sure you want to permanently remove ${username}? This cannot be undone.`,
     shareProfileTitle: (username) => `Link for ${username}`,
     shareProfileInstructions: "The user can scan this QR code or use the link to open their card directly.",
     copyLinkButton: "Copy Link",
     copiedButton: "Copied!",
     shareUserButtonLabel: (username) => `Share card for ${username}`,
+    shareButton: "Share",
+    importButton: "Import Data",
+    exportButton: "Export Data",
+    importModalTitle: "Import User Data",
+    importModalMessage: "Do you want to merge the new data with existing data, or replace all current data?",
+    mergeButton: "Merge",
+    replaceButton: "Replace",
+    importSuccessMessage: (count) => `Successfully imported ${count} users.`,
+    importErrorMessage: "Invalid file or corrupted data. Please try again.",
   },
 };
