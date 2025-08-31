@@ -1,3 +1,4 @@
+
 export interface Translations {
   title: string;
   progressText: (count: number, total: number) => string;

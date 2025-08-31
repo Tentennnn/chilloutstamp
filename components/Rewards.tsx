@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Header } from './Header';
 import { StampCard } from './StampCard';
 import { RewardModal } from './RewardModal';
 import { translations } from '../constants/translations';
-import { getUser, upsertUser } from '../App';
+import { getUser, upsertUser } from '../services/api';
 
 interface RewardsProps {
   user: string;

@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { User, getAllUsers, getUser, upsertUser, deleteUser, clearUsers } from '../App';
+import type { User } from '../App';
+import { getAllUsers, getUser, upsertUser, deleteUser, clearUsers } from '../services/api';
 import { translations, Translations } from '../constants/translations';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { ShareProfileModal } from './ShareProfileModal';
