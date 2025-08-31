@@ -1,0 +1,22 @@
+[
+  {
+    "username": "den",
+    "stamps": 2,
+    "language": "kh"
+  },
+  {
+    "username": "nith",
+    "stamps": 3,
+    "language": "kh"
+  },
+  {
+    "username": "nyon",
+    "stamps": 4,
+    "language": "kh"
+  },
+  {
+    "username": "sokny",
+    "stamps": 0,
+    "language": "kh"
+  }
+]
