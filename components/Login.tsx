@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import type { Translations } from '../constants/translations';
 import { Logo } from './Logo';
@@ -21,9 +22,9 @@ export const Login: React.FC<LoginProps> = ({ onLogin, t, onBack }) => {
       const result = await onLogin(username.trim().toLowerCase());
       setIsLoading(false);
       if (!result.success) {
-        // The `userNotFoundError` is the most specific error we can show here
-        setError(t.userNotFoundError);
-        setTimeout(() => setError(''), 3000);
+        const errorMessage = result.error === 'network_error' ? t.networkError : t.userNotFoundError;
+        setError(errorMessage);
+        setTimeout(() => setError(''), 4000);
       }
     }
   };

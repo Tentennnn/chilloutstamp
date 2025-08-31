@@ -22,6 +22,7 @@ export interface Translations {
   logoutButton: string;
   welcomeMessage: (username: string) => string;
   userNotFoundError: string;
+  networkError: string;
   // Login selector
   userLoginPrompt: string;
   adminLoginPrompt: string;
@@ -37,6 +38,8 @@ export interface Translations {
   existingUsersTitle: string;
   userCreatedSuccess: (username: string) => string;
   userExistsError: (username: string) => string;
+  genericApiError: string;
+  usersLoadError: string;
   backButton: string;
   resetUserStampsButton: string;
   removeUserButton: string;
@@ -95,6 +98,7 @@ export const translations: Record<'kh' | 'en', Translations> = {
     logoutButton: "ចាកចេញ",
     welcomeMessage: (username) => `សួស្តី, ${username}`,
     userNotFoundError: "រកមិនឃើញអ្នកប្រើទេ។ សូមស្នើសុំឱ្យអ្នកគ្រប់គ្រងបង្កើតគណនីសម្រាប់អ្នក។",
+    networkError: "មិនអាចភ្ជាប់ទៅម៉ាស៊ីនមេបានទេ។ សូមពិនិត្យមើលការតភ្ជាប់អ៊ីនធឺណិតរបស់អ្នក។",
     userLoginPrompt: "ចូលគណនី​អ្នក​ប្រើ",
     adminLoginPrompt: "ចូលគណនី​អ្នកគ្រប់គ្រង",
     adminLoginTitle: "ចូលជាអ្នកគ្រប់គ្រង",
@@ -108,6 +112,8 @@ export const translations: Record<'kh' | 'en', Translations> = {
     existingUsersTitle: "អ្នកប្រើប្រាស់​ដែល​មាន​",
     userCreatedSuccess: (username) => `បានបង្កើតអ្នកប្រើ ${username} ដោយជោគជ័យ។`,
     userExistsError: (username) => `អ្នកប្រើ ${username} មានរួចហើយ។`,
+    genericApiError: "ប្រតិបត្តិការបានបរាជ័យ។ សូម​ព្យាយាម​ម្តង​ទៀត។",
+    usersLoadError: "ការផ្ទុកអ្នកប្រើប្រាស់បានបរាជ័យ។ សូមពិនិត្យមើលការតភ្ជាប់របស់អ្នក ហើយព្យាយាមម្តងទៀត។",
     backButton: "ត្រឡប់ក្រោយ",
     resetUserStampsButton: "កំណត់ឡើងវិញ",
     removeUserButton: "លុបអ្នកប្រើ",
@@ -161,6 +167,7 @@ export const translations: Record<'kh' | 'en', Translations> = {
     logoutButton: "Log Out",
     welcomeMessage: (username) => `Hi, ${username}`,
     userNotFoundError: "User not found. Please ask an admin to create an account for you.",
+    networkError: "Could not connect to the server. Please check your internet connection.",
     userLoginPrompt: "User Login",
     adminLoginPrompt: "Admin Login",
     adminLoginTitle: "Admin Login",
@@ -174,6 +181,8 @@ export const translations: Record<'kh' | 'en', Translations> = {
     existingUsersTitle: "Existing Users",
     userCreatedSuccess: (username) => `Successfully created user ${username}.`,
     userExistsError: (username) => `User ${username} already exists.`,
+    genericApiError: "Operation failed. Please try again.",
+    usersLoadError: "Failed to load users. Please check your connection and try again.",
     backButton: "Back",
     resetUserStampsButton: "Reset",
     removeUserButton: "Remove",

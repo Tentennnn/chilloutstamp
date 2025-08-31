@@ -62,8 +62,13 @@ const App: React.FC = () => {
   useEffect(() => {
     const syncLanguage = async () => {
         if (session.user) {
-            const user = await getUser(session.user);
-            setLanguage(user?.language || 'kh');
+            try {
+                const user = await getUser(session.user);
+                setLanguage(user?.language || 'kh');
+            } catch (error) {
+                console.error("Failed to sync language on user change:", error);
+                setLanguage('kh'); // Default on error
+            }
         } else {
             setLanguage('kh');
         }
@@ -72,13 +77,18 @@ const App: React.FC = () => {
   }, [session.user]);
 
   const handleUserLogin = async (username: string): Promise<{ success: boolean; error?: string }> => {
-    const lowerCaseUsername = username.toLowerCase();
-    const user = await getUser(lowerCaseUsername);
-    if (user) {
-      setSession({ user: lowerCaseUsername, admin: null });
-      return { success: true };
+    try {
+        const lowerCaseUsername = username.toLowerCase();
+        const user = await getUser(lowerCaseUsername);
+        if (user) {
+          setSession({ user: lowerCaseUsername, admin: null });
+          return { success: true };
+        }
+        return { success: false, error: 'user_not_found' };
+    } catch (error) {
+        console.error("Login failed:", error);
+        return { success: false, error: 'network_error' };
     }
-    return { success: false, error: 'user_not_found' };
   };
   
   const handleAdminLogin = async (username: string) => {
@@ -93,9 +103,14 @@ const App: React.FC = () => {
   const handleLanguageChange = async (lang: 'kh' | 'en') => {
     setLanguage(lang);
     if (session.user) {
-      const user = await getUser(session.user);
-      if (user) {
-        await upsertUser({ ...user, language: lang });
+      try {
+        const user = await getUser(session.user);
+        if (user) {
+          await upsertUser({ ...user, language: lang });
+        }
+      } catch (error) {
+        console.error("Failed to sync language preference:", error);
+        // Silently fail, as this is a non-critical background update.
       }
     }
   };

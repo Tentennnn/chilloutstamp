@@ -29,12 +29,18 @@ export const Rewards: React.FC<RewardsProps> = ({ user, onLogout, onBack, initia
 
   useEffect(() => {
     const fetchUserData = async () => {
-        const userData = await getUser(user);
-        if (userData) {
-            setStamps(userData.stamps);
-            if (prevStampsRef.current < REWARD_GOAL && userData.stamps >= REWARD_GOAL) {
-                setPlayFinishAnimation(true);
+        try {
+            const userData = await getUser(user);
+            if (userData) {
+                setStamps(userData.stamps);
+                if (prevStampsRef.current < REWARD_GOAL && userData.stamps >= REWARD_GOAL) {
+                    setPlayFinishAnimation(true);
+                }
             }
+        } catch (error) {
+            console.error("Failed to sync user data:", error);
+            // Silently fail to avoid interrupting the user with frequent polling errors.
+            // A visual indicator could be added here if desired.
         }
     };
 
@@ -62,11 +68,16 @@ export const Rewards: React.FC<RewardsProps> = ({ user, onLogout, onBack, initia
   };
 
   const startNewCard = async () => {
-    const userData = await getUser(user);
-    if (userData) {
-      await upsertUser({ ...userData, stamps: 0 });
-      setStamps(0);
-      setIsRewardModalOpen(false);
+    try {
+        const userData = await getUser(user);
+        if (userData) {
+          await upsertUser({ ...userData, stamps: 0 });
+          setStamps(0);
+          setIsRewardModalOpen(false);
+        }
+    } catch (error) {
+        console.error("Failed to start new card:", error);
+        alert(translations[language].genericApiError);
     }
   };
 

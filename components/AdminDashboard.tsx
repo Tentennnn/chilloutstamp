@@ -163,21 +163,46 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
       action: 'reset' | 'remove';
       username: string;
   } | null>(null);
-  const [updatedStamp, setUpdatedStamp] = useState<{ username: string; change: 'add' | 'remove' } | null>(null);
+  const [openMenuUser, setOpenMenuUser] = useState<string | null>(null);
   const [importData, setImportData] = useState<User[] | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOption, setSortOption] = useState<SortOption>('username-asc');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
 
   const fetchUsers = async () => {
-    const allUsers = await getAllUsers();
-    setUsers(allUsers);
+    setIsLoading(true);
+    setError(null);
+    try {
+        const allUsers = await getAllUsers();
+        setUsers(allUsers);
+    } catch (e) {
+        setError(t.usersLoadError);
+        console.error(e);
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+        if (openMenuUser && menuRef.current && !menuRef.current.contains(event.target as Node)) {
+            setOpenMenuUser(null);
+        }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openMenuUser]);
+
 
   const t = translations[language];
 
@@ -203,45 +228,67 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newUsername.trim()) return;
-
     const trimmedUsername = newUsername.trim().toLowerCase();
-    const existingUser = await getUser(trimmedUsername);
 
-    if (existingUser) {
-      setToast({ type: 'error', content: t.userExistsError(trimmedUsername) });
-    } else {
-      await upsertUser({ username: trimmedUsername, stamps: 0, language: 'kh' });
-      setToast({ type: 'success', content: t.userCreatedSuccess(trimmedUsername) });
-      setNewUsername('');
-      fetchUsers(); // Refresh list
+    try {
+        const existingUser = await getUser(trimmedUsername);
+
+        if (existingUser) {
+          setToast({ type: 'error', content: t.userExistsError(trimmedUsername) });
+        } else {
+          await upsertUser({ username: trimmedUsername, stamps: 0, language: 'kh' });
+          setToast({ type: 'success', content: t.userCreatedSuccess(trimmedUsername) });
+          setNewUsername('');
+          fetchUsers(); // Refresh list
+        }
+    } catch (err) {
+        console.error("Failed to create user:", err);
+        setToast({ type: 'error', content: t.genericApiError });
     }
   };
   
   const handleStampChange = async (username: string, amount: number) => {
-    const user = await getUser(username);
-    if (user) {
-        const newStamps = Math.max(0, Math.min(15, user.stamps + amount));
-        await upsertUser({ ...user, stamps: newStamps });
-        fetchUsers();
-        
-        setUpdatedStamp({ username, change: amount > 0 ? 'add' : 'remove' });
-        setTimeout(() => setUpdatedStamp(null), 500);
+    try {
+        const user = await getUser(username);
+        if (user) {
+            const newStamps = Math.max(0, Math.min(15, user.stamps + amount));
+            await upsertUser({ ...user, stamps: newStamps });
+            
+            // Optimistic UI update
+            setUsers(currentUsers => currentUsers.map(u => u.username === username ? {...u, stamps: newStamps} : u));
+        }
+    } catch (err) {
+        console.error("Failed to change stamp:", err);
+        setToast({ type: 'error', content: t.genericApiError });
+        fetchUsers(); // Re-fetch to correct state on error
     }
   };
 
   const handleResetUser = async (username: string) => {
-    const user = await getUser(username);
-    if (user) {
-        await upsertUser({ ...user, stamps: 0 });
-        fetchUsers();
+    try {
+        const user = await getUser(username);
+        if (user) {
+            await upsertUser({ ...user, stamps: 0 });
+            fetchUsers();
+        }
+    } catch (err) {
+        console.error("Failed to reset user:", err);
+        setToast({ type: 'error', content: t.genericApiError });
+    } finally {
+        setConfirmation(null);
     }
-    setConfirmation(null);
   };
 
   const handleRemoveUser = async (username: string) => {
-    await deleteUser(username);
-    fetchUsers();
-    setConfirmation(null);
+    try {
+        await deleteUser(username);
+        fetchUsers();
+    } catch (err) {
+        console.error("Failed to remove user:", err);
+        setToast({ type: 'error', content: t.genericApiError });
+    } finally {
+        setConfirmation(null);
+    }
   };
 
   const handleConfirmation = () => {
@@ -258,17 +305,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
   };
 
   const handleExport = async () => {
-      const allUsers = await getAllUsers();
-      const dataStr = JSON.stringify(allUsers, null, 2);
-      const blob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'coffee-rewards-backup.json';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      try {
+        const allUsers = await getAllUsers();
+        const dataStr = JSON.stringify(allUsers, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'coffee-rewards-backup.json';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error("Failed to export data:", err);
+        setToast({ type: 'error', content: t.genericApiError });
+      }
   };
 
   const handleTriggerImport = () => {
@@ -286,7 +338,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
               if (typeof text !== 'string') throw new Error("File is not text");
               const data = JSON.parse(text);
 
-              // Basic validation
               if (Array.isArray(data) && (data.length === 0 || (data[0].username && typeof data[0].stamps === 'number'))) {
                   setImportData(data);
               } else {
@@ -298,36 +349,40 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
           }
       };
       reader.readAsText(file);
-      // Reset file input to allow re-uploading the same file
       event.target.value = '';
   };
   
   const handleImportConfirm = async (mode: 'merge' | 'replace') => {
     if (!importData) return;
 
-    if (mode === 'replace') {
-        await clearUsers();
-    }
-
-    for (const user of importData) {
-        // Ensure data integrity before upserting
-        if(user.username && typeof user.stamps === 'number') {
-           await upsertUser({
-               username: user.username.toLowerCase(),
-               stamps: Math.max(0, Math.min(15, user.stamps)), // Clamp stamps
-               language: user.language || 'kh'
-           });
+    try {
+        if (mode === 'replace') {
+            await clearUsers();
         }
+
+        for (const user of importData) {
+            if(user.username && typeof user.stamps === 'number') {
+               await upsertUser({
+                   username: user.username.toLowerCase(),
+                   stamps: Math.max(0, Math.min(15, user.stamps)),
+                   language: user.language || 'kh'
+               });
+            }
+        }
+        
+        setToast({ type: 'success', content: t.importSuccessMessage(importData.length) });
+        setImportData(null);
+        fetchUsers();
+    } catch (err) {
+        console.error("Failed to import data:", err);
+        setToast({ type: 'error', content: t.genericApiError });
+        setImportData(null);
     }
-    
-    setToast({ type: 'success', content: t.importSuccessMessage(importData.length) });
-    setImportData(null);
-    fetchUsers();
   };
 
 
   return (
-    <div className="w-full max-w-2xl mx-auto p-4">
+    <div className="w-full max-w-6xl mx-auto p-4 sm:p-6">
       {toast && <Toast message={toast.content} type={toast.type} onDismiss={() => setToast(null)} />}
       <ConfirmationModal
           isOpen={!!confirmation}
@@ -357,163 +412,159 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
         accept=".json,application/json"
         style={{ display: 'none' }}
       />
-
-      <header className="flex flex-col sm:flex-row justify-between items-center w-full mb-6 gap-2">
-        <h1 className="text-2xl sm:text-3xl font-bold text-brand-green-900">{t.adminDashboardTitle}</h1>
-        <div className="flex items-center gap-2 sm:gap-3 text-sm">
-          <span className="text-brand-green-800 font-semibold">{t.welcomeMessage(adminUser)}</span>
-          <LanguageSwitcher currentLanguage={language} onToggle={toggleLanguage} />
-          <button
-              onClick={handleExport}
-              className="px-3 py-2 font-semibold bg-blue-100 text-blue-800 rounded-lg shadow-sm hover:bg-blue-200 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              aria-label={t.exportButton}
-          >{t.exportButton}</button>
-          <button
-              onClick={handleTriggerImport}
-              className="px-3 py-2 font-semibold bg-green-100 text-green-800 rounded-lg shadow-sm hover:bg-green-200 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-              aria-label={t.importButton}
-          >{t.importButton}</button>
-          <button
-            onClick={onLogout}
-            className="px-3 py-2 font-semibold bg-white text-brand-green-700 rounded-lg shadow-sm hover:bg-brand-green-50 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-green-500"
-            aria-label={t.logoutButton}
-          >
-            {t.logoutButton}
-          </button>
+      
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center w-full mb-6 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-white">{t.adminDashboardTitle}</h1>
+          <p className="text-brand-green-200">{t.welcomeMessage(adminUser)}</p>
+        </div>
+        <div className="flex items-center gap-2 sm:gap-3 text-sm self-end sm:self-center">
+            <LanguageSwitcher currentLanguage={language} onToggle={toggleLanguage} />
+            <button
+                onClick={onLogout}
+                className="px-3 py-2 font-semibold bg-white text-brand-green-700 rounded-lg shadow-sm hover:bg-brand-green-50 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-green-500"
+                aria-label={t.logoutButton}
+            >
+                {t.logoutButton}
+            </button>
         </div>
       </header>
 
-      <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
-        {/* Create User Section */}
-        <section className="mb-8">
-          <h2 className="text-xl font-bold text-brand-green-800 mb-2">{t.createUserTitle}</h2>
-          <p className="text-brand-green-600 mb-4">{t.createUserInstructions}</p>
-          <form onSubmit={handleCreateUser} className="flex flex-col sm:flex-row gap-3">
-            <input
-              type="text"
-              value={newUsername}
-              onChange={(e) => setNewUsername(e.target.value)}
-              placeholder={t.usernamePlaceholder}
-              className="flex-grow px-4 py-3 border border-brand-green-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-green-500"
-              aria-label={t.usernamePlaceholder}
-              required
-            />
-            <button
-              type="submit"
-              className="px-6 py-3 font-bold rounded-xl text-white bg-brand-green-800 hover:bg-brand-green-900 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-brand-green-300"
-            >
-              {t.createUserButton}
-            </button>
-          </form>
-        </section>
-
-        {/* Existing Users Section */}
-        <section>
-          <h2 className="text-xl font-bold text-brand-green-800 mb-4">{t.existingUsersTitle}</h2>
-          
-          {users.length > 0 && (
-            <div className="flex flex-col sm:flex-row gap-4 mb-4">
-              <div className="relative flex-grow">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                  <svg className="w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </span>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={t.searchUsersPlaceholder}
-                  className="w-full pl-10 pr-4 py-2 border border-brand-green-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green-500"
-                />
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <label htmlFor="sort-select" className="text-sm font-medium text-brand-green-700">{t.sortByLabel}</label>
-                <select
-                  id="sort-select"
-                  value={sortOption}
-                  onChange={(e) => setSortOption(e.target.value as SortOption)}
-                  className="px-3 py-2 border border-brand-green-200 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-green-500"
-                >
-                  <option value="username-asc">{t.sortUsernameAZ}</option>
-                  <option value="username-desc">{t.sortUsernameZA}</option>
-                  <option value="stamps-asc">{t.sortStampsLowHigh}</option>
-                  <option value="stamps-desc">{t.sortStampsHighLow}</option>
-                </select>
-              </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <aside className="lg:col-span-1 flex flex-col gap-6">
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+                <h2 className="text-xl font-bold text-brand-green-800 mb-2">{t.createUserTitle}</h2>
+                <p className="text-brand-green-600 mb-4 text-sm">{t.createUserInstructions}</p>
+                <form onSubmit={handleCreateUser} className="flex flex-col gap-3">
+                    <input
+                        type="text"
+                        value={newUsername}
+                        onChange={(e) => setNewUsername(e.target.value)}
+                        placeholder={t.usernamePlaceholder}
+                        className="w-full px-4 py-3 border border-brand-green-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-green-500"
+                        aria-label={t.usernamePlaceholder}
+                        required
+                    />
+                    <button
+                        type="submit"
+                        className="w-full px-6 py-3 font-bold rounded-xl text-white bg-brand-green-800 hover:bg-brand-green-900 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-brand-green-300"
+                    >
+                        {t.createUserButton}
+                    </button>
+                </form>
             </div>
-          )}
-
-          {users.length > 0 ? (
-            <div className="max-h-96 overflow-y-auto bg-brand-green-50 p-3 sm:p-4 rounded-xl space-y-3">
-              {displayedUsers.length > 0 ? (
-                displayedUsers.map((user) => (
-                  <div key={user.username} className="flex flex-col sm:flex-row justify-between items-center bg-white p-3 rounded-lg shadow-sm gap-3">
-                    <div className="flex-1 text-center sm:text-left">
-                      <span className="font-semibold text-brand-green-900">
-                        {user.username}
-                      </span>
-                      <span className={`inline-block text-sm sm:inline sm:ml-3 text-white bg-brand-green-700 px-3 py-1 rounded-full ${
-                        updatedStamp?.username === user.username ? `stamp-${updatedStamp.change}` : ''
-                      }`}>
-                        {`${user.stamps} / 15`}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-end">
-                        <button 
-                            onClick={() => handleStampChange(user.username, -1)} 
-                            disabled={user.stamps === 0}
-                            className="w-8 h-8 font-bold text-lg bg-brand-green-100 text-brand-green-800 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-brand-green-200 transition-colors"
-                            aria-label={`Remove stamp from ${user.username}`}
-                        >
-                            -
-                        </button>
-                        <button 
-                            onClick={() => handleStampChange(user.username, 1)} 
-                            disabled={user.stamps >= 15}
-                            className="w-8 h-8 font-bold text-lg bg-brand-green-100 text-brand-green-800 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-brand-green-200 transition-colors"
-                            aria-label={`Add stamp to ${user.username}`}
-                        >
-                            +
-                        </button>
-                        <button
-                          onClick={() => onViewUser(user.username)}
-                          className="px-3 py-1 text-xs font-semibold text-indigo-700 bg-indigo-100 rounded-md hover:bg-indigo-200 transition-colors"
-                          aria-label={`View card for ${user.username}`}
-                        >
-                          {t.viewCardButton}
-                        </button>
-                        <button
-                          onClick={() => setShareModalUser(user.username)}
-                          className="px-3 py-1 text-xs font-semibold text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors"
-                          aria-label={t.shareUserButtonLabel(user.username)}
-                        >
-                          {t.shareButton}
-                        </button>
-                        <button 
-                            onClick={() => setConfirmation({ action: 'reset', username: user.username })}
-                            className="px-3 py-1 text-xs font-semibold text-amber-700 bg-amber-100 rounded-md hover:bg-amber-200 transition-colors"
-                        >
-                            {t.resetUserStampsButton}
-                        </button>
-                        <button
-                          onClick={() => setConfirmation({ action: 'remove', username: user.username })}
-                          className="px-3 py-1 text-xs font-semibold text-red-700 bg-red-100 rounded-md hover:bg-red-200 transition-colors"
-                        >
-                          {t.removeUserButton}
-                        </button>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-brand-green-600 text-center py-4">No users found matching your search.</p>
-              )}
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+                <h2 className="text-xl font-bold text-brand-green-800 mb-4">Data Management</h2>
+                <div className="flex flex-col gap-3">
+                    <button
+                        onClick={handleTriggerImport}
+                        className="flex items-center justify-center gap-2 w-full px-4 py-3 font-semibold bg-green-100 text-green-800 rounded-xl shadow-sm hover:bg-green-200 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                        aria-label={t.importButton}
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        <span>{t.importButton}</span>
+                    </button>
+                    <button
+                        onClick={handleExport}
+                        className="flex items-center justify-center gap-2 w-full px-4 py-3 font-semibold bg-blue-100 text-blue-800 rounded-xl shadow-sm hover:bg-blue-200 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        aria-label={t.exportButton}
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        <span>{t.exportButton}</span>
+                    </button>
+                </div>
             </div>
-          ) : (
-            <p className="text-brand-green-600 text-center sm:text-left">No users created yet.</p>
-          )}
-        </section>
+        </aside>
+
+        <main className="lg:col-span-2 bg-white rounded-2xl shadow-lg p-6">
+            <h2 className="text-xl font-bold text-brand-green-800 mb-4">{t.existingUsersTitle}</h2>
+            {users.length > 0 && !isLoading && !error && (
+                <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                    <div className="relative flex-grow">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                            <svg className="w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        </span>
+                        <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder={t.searchUsersPlaceholder} className="w-full pl-10 pr-4 py-2 border border-brand-green-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green-500" />
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                        <label htmlFor="sort-select" className="text-sm font-medium text-brand-green-700">{t.sortByLabel}</label>
+                        <select id="sort-select" value={sortOption} onChange={(e) => setSortOption(e.target.value as SortOption)} className="px-3 py-2 border border-brand-green-200 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-green-500">
+                            <option value="username-asc">{t.sortUsernameAZ}</option>
+                            <option value="username-desc">{t.sortUsernameZA}</option>
+                            <option value="stamps-asc">{t.sortStampsLowHigh}</option>
+                            <option value="stamps-desc">{t.sortStampsHighLow}</option>
+                        </select>
+                    </div>
+                </div>
+            )}
+            {isLoading ? (
+                <div className="text-center py-8">
+                    <svg className="animate-spin mx-auto h-8 w-8 text-brand-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                </div>
+            ) : error ? (
+                <div className="text-center py-8 text-red-600 bg-red-50 p-4 rounded-lg"><p>{error}</p></div>
+            ) : users.length > 0 ? (
+                <div className="space-y-3">
+                    {displayedUsers.length > 0 ? (
+                        displayedUsers.map((user) => (
+                        <div key={user.username} className="bg-brand-green-50 p-4 rounded-xl shadow-sm transition-all duration-300 hover:shadow-md">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                <div className="flex-grow w-full sm:w-auto">
+                                    <div className="flex items-center justify-between">
+                                        <span className="font-bold text-lg text-brand-green-900">{user.username}</span>
+                                        <span className="sm:hidden font-semibold text-brand-green-700">{`${user.stamps} / 15`}</span>
+                                    </div>
+                                    <div className="mt-2 flex items-center gap-3">
+                                        <div className="w-full bg-brand-green-200 rounded-full h-2.5">
+                                            <div className="bg-brand-green-600 h-2.5 rounded-full transition-all duration-500" style={{ width: `${(user.stamps / 15) * 100}%` }}></div>
+                                        </div>
+                                        <span className="hidden sm:block font-semibold text-brand-green-700 w-16 text-right">{`${user.stamps} / 15`}</span>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 self-end sm:self-center">
+                                    <button onClick={() => handleStampChange(user.username, -1)} disabled={user.stamps === 0} className="w-10 h-10 font-bold text-xl bg-white border border-brand-green-200 text-brand-green-800 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-brand-green-100 transition-colors" aria-label={`Remove stamp from ${user.username}`}>-</button>
+                                    <button onClick={() => handleStampChange(user.username, 1)} disabled={user.stamps >= 15} className="w-10 h-10 font-bold text-xl bg-white border border-brand-green-200 text-brand-green-800 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-brand-green-100 transition-colors" aria-label={`Add stamp to ${user.username}`}>+</button>
+                                    <div className="relative">
+                                        <button onClick={() => setOpenMenuUser(openMenuUser === user.username ? null : user.username)} className="w-10 h-10 flex items-center justify-center bg-white border border-brand-green-200 text-brand-green-800 rounded-full hover:bg-brand-green-100 transition-colors" aria-label={`More options for ${user.username}`}>
+                                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path></svg>
+                                        </button>
+                                        {openMenuUser === user.username && (
+                                        <div ref={menuRef} className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 origin-top-right ring-1 ring-black ring-opacity-5 focus:outline-none animate-scale-in">
+                                            <div className="py-1" role="menu" aria-orientation="vertical">
+                                                <a href="#" onClick={(e) => { e.preventDefault(); onViewUser(user.username); setOpenMenuUser(null); }} className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">
+                                                    <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                                    <span>{t.viewCardButton}</span>
+                                                </a>
+                                                <a href="#" onClick={(e) => { e.preventDefault(); setShareModalUser(user.username); setOpenMenuUser(null); }} className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">
+                                                   <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12s-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.368a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path></svg>
+                                                    <span>{t.shareButton}</span>
+                                                </a>
+                                                <a href="#" onClick={(e) => { e.preventDefault(); setConfirmation({ action: 'reset', username: user.username }); setOpenMenuUser(null); }} className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">
+                                                   <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h5M20 20v-5h-5M4 4l5 5M20 20l-5-5"></path></svg>
+                                                    <span>{t.resetUserStampsButton}</span>
+                                                </a>
+                                                <a href="#" onClick={(e) => { e.preventDefault(); setConfirmation({ action: 'remove', username: user.username }); setOpenMenuUser(null); }} className="flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50" role="menuitem">
+                                                   <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                    <span>{t.removeUserButton}</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        ))
+                    ) : (
+                        <p className="text-brand-green-600 text-center py-4">No users found matching your search.</p>
+                    )}
+                </div>
+            ) : (
+                <p className="text-brand-green-600 text-center sm:text-left">No users created yet.</p>
+            )}
+        </main>
       </div>
+
       {shareModalUser && (
         <ShareProfileModal 
           isOpen={!!shareModalUser}
@@ -522,24 +573,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
           t={t}
         />
       )}
-       <style>{`
-          @keyframes stamp-add-anim {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.2); background-color: #47826e; } /* brand-green-600 */
-            100% { transform: scale(1); }
-          }
-          .stamp-add {
-            animation: stamp-add-anim 0.5s ease-in-out;
-          }
-
-          @keyframes stamp-remove-anim {
-            0% { transform: scale(1); }
-            50% { transform: scale(0.9); background-color: #264a3e; } /* brand-green-800 */
-            100% { transform: scale(1); }
-          }
-          .stamp-remove {
-            animation: stamp-remove-anim 0.5s ease-in-out;
-          }
+      <style>{`
+        @keyframes scale-in {
+            0% { opacity: 0; transform: scale(0.95) translateY(-5px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .animate-scale-in { animation: scale-in 0.1s ease-out forwards; }
       `}</style>
     </div>
   );
