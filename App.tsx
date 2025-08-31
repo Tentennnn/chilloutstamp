@@ -26,37 +26,58 @@ const DB_VERSION = 1;
 const USERS_STORE = 'users';
 const SESSION_STORE = 'session';
 
-let db: IDBDatabase;
+let dbPromise: Promise<IDBDatabase> | null = null;
 
 function openDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    if (db) {
-      return resolve(db);
+    if (!dbPromise) {
+        dbPromise = new Promise((resolve, reject) => {
+            // Check for IndexedDB support
+            if (!('indexedDB' in window)) {
+                console.error("This browser doesn't support IndexedDB.");
+                return reject("IndexedDB not supported");
+            }
+
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+            request.onerror = () => {
+                console.error('Database error:', request.error);
+                dbPromise = null; // Allow retrying
+                reject('Error opening database');
+            };
+
+            request.onblocked = () => {
+                console.warn('Database open request is blocked.');
+                // This can happen if another tab is upgrading the DB.
+                alert("The application can't start because it's already open in another tab that needs to be updated. Please close all other tabs with this app open and reload.");
+                reject('Database is blocked');
+            };
+
+            request.onsuccess = () => {
+                const db = request.result;
+                // Handle version changes from other tabs
+                db.onversionchange = () => {
+                    db.close();
+                    dbPromise = null; // Force re-open on next call
+                    alert("A new version of the application is available. The page will now reload.");
+                    window.location.reload();
+                };
+                resolve(db);
+            };
+
+            request.onupgradeneeded = (event) => {
+                const dbInstance = (event.target as IDBOpenDBRequest).result;
+                if (!dbInstance.objectStoreNames.contains(USERS_STORE)) {
+                    dbInstance.createObjectStore(USERS_STORE, { keyPath: 'username' });
+                }
+                if (!dbInstance.objectStoreNames.contains(SESSION_STORE)) {
+                    dbInstance.createObjectStore(SESSION_STORE, { keyPath: 'id' });
+                }
+            };
+        });
     }
-
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-    request.onerror = () => {
-      console.error('Database error:', request.error);
-      reject('Error opening database');
-    };
-
-    request.onsuccess = () => {
-      db = request.result;
-      resolve(db);
-    };
-
-    request.onupgradeneeded = (event) => {
-      const dbInstance = (event.target as IDBOpenDBRequest).result;
-      if (!dbInstance.objectStoreNames.contains(USERS_STORE)) {
-        dbInstance.createObjectStore(USERS_STORE, { keyPath: 'username' });
-      }
-      if (!dbInstance.objectStoreNames.contains(SESSION_STORE)) {
-        dbInstance.createObjectStore(SESSION_STORE, { keyPath: 'id' });
-      }
-    };
-  });
+    return dbPromise;
 }
+
 
 /**
  * A utility to promisify IndexedDB requests.
@@ -135,23 +156,28 @@ const App: React.FC = () => {
   // Load initial session and handle deep linking
   useEffect(() => {
     const initialize = async () => {
-      const currentSession = await getSession();
+      try {
+        const currentSession = await getSession();
 
-      if (currentSession.user || currentSession.admin) {
-        setSession({ user: currentSession.user, admin: currentSession.admin });
-      } else {
-        const path = window.location.pathname;
-        // Match /username/profile or /username/profile/
-        const match = path.match(/^\/([^/]+)\/profile\/?$/);
-        const userFromUrl = match ? decodeURIComponent(match[1]) : null;
+        if (currentSession.user || currentSession.admin) {
+          setSession({ user: currentSession.user, admin: currentSession.admin });
+        } else {
+          const path = window.location.pathname;
+          // Match /username/profile or /username/profile/
+          const match = path.match(/^\/([^/]+)\/profile\/?$/);
+          const userFromUrl = match ? decodeURIComponent(match[1]) : null;
 
-        if (userFromUrl) {
-          // Fire and forget login attempt
-          handleUserLogin(userFromUrl.trim()).then(() => {
-            // Always clean up URL to base path after deep link attempt
-            window.history.replaceState({}, document.title, '/');
-          });
+          if (userFromUrl) {
+            // Fire and forget login attempt
+            handleUserLogin(userFromUrl.trim()).then(() => {
+              // Always clean up URL to base path after deep link attempt
+              window.history.replaceState({}, document.title, '/');
+            });
+          }
         }
+      } catch (error) {
+          console.error("Failed to initialize app:", error);
+          // Here you could show an error message to the user
       }
       setIsLoading(false);
     };
