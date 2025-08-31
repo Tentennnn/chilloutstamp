@@ -1,4 +1,3 @@
-
 export interface Translations {
   title: string;
   progressText: (count: number, total: number) => string;
@@ -74,7 +73,7 @@ export interface Translations {
 
 export const translations: Record<'kh' | 'en', Translations> = {
   kh: {
-    title: "កាតสะสมពិន្ទុកាแฟ",
+    title: "CHILLOUT COFFEE",
     progressText: (count, total) => `កែវទី ${count} នៃ ${total}`,
     instructions: "ប្រមូលត្រា 15 ដើម្បីទទួលបាន Blink Box Cup មួយ! សូមសួរ​បុគ្គលិក​ដើម្បី​បន្ថែម​ត្រា។",
     addStampButton: "បន្ថែមត្រា",
@@ -140,7 +139,7 @@ export const translations: Record<'kh' | 'en', Translations> = {
     sortStampsHighLow: "ត្រា (ច្រើនទៅតិច)",
   },
   en: {
-    title: "Coffee Rewards Card",
+    title: "CHILLOUT COFFEE",
     progressText: (count, total) => `${count} of ${total} cups`,
     instructions: "Collect 15 stamps to get a free Blink Box Cup! Ask our staff to add a stamp.",
     addStampButton: "Add a Stamp",

@@ -1,15 +1,17 @@
+
 import React from 'react';
 
 interface CoffeeCupIconProps {
   filled: boolean;
+  isFinal?: boolean;
 }
 
-export const CoffeeCupIcon: React.FC<CoffeeCupIconProps> = ({ filled }) => {
+export const CoffeeCupIcon: React.FC<CoffeeCupIconProps> = ({ filled, isFinal = false }) => {
   return (
     <div
       className={`aspect-square rounded-full flex items-center justify-center transition-colors duration-300 ${
         filled ? 'bg-brand-green-700 shadow-inner' : 'bg-brand-green-200'
-      }`}
+      } ${isFinal ? 'animate-final-stamp' : ''}`}
     >
       <svg
         className={`w-2/3 h-2/3 transition-colors duration-300 ${
@@ -22,9 +24,9 @@ export const CoffeeCupIcon: React.FC<CoffeeCupIconProps> = ({ filled }) => {
       >
         <path
           fillRule="evenodd"
-          d="M10 3a1 1 0 011 1v.5a.5.5 0 001 0V4a1 1 0 011-1h2a1 1 0 011 1v1a1 1 0 01-1 1h-.5a.5.5 0 000 1H15a1 1 0 011 1v5a4 4 0 01-4 4H8a4 4 0 01-4-4V8a1 1 0 011-1h1.5a.5.5 0 000-1H5a1 1 0 01-1-1V4a1 1 0 011-1h2a1 1 0 011 1v.5a.5.5 0 001 0V4a1 1 0 011-1zM8 8v5a2 2 0 002 2h2a2 2 0 002-2V8H8z"
+          d="M9.5 2v4h1V2h-1zM5 5h10v2H5V5zM6 7l1.5 10h5L14 7H6z"
           clipRule="evenodd"
-        ></path>
+        />
       </svg>
     </div>
   );
