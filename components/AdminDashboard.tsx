@@ -454,7 +454,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
                 </form>
             </div>
             <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h2 className="text-xl font-bold text-brand-green-800 mb-4">Data Management</h2>
+                <h2 className="text-xl font-bold text-brand-green-800 mb-4">Data | ទិន្នន័យ</h2>
                 <div className="flex flex-col gap-3">
                     <button
                         onClick={handleTriggerImport}
