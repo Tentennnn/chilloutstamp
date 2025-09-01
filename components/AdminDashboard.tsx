@@ -416,7 +416,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminUser, onLog
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center w-full mb-6 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white">{t.adminDashboardTitle}</h1>
-          <p className="text-brand-green-200">{t.welcomeMessage(adminUser)}</p>
+          <p className="text-brand-green-200">{t.welcomeGreeting} {adminUser}</p>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 text-sm self-end sm:self-center">
             <LanguageSwitcher currentLanguage={language} onToggle={toggleLanguage} />

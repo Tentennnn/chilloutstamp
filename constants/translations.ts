@@ -20,7 +20,7 @@ export interface Translations {
   loginButton: string;
   loggingIn: string;
   logoutButton: string;
-  welcomeMessage: (username: string) => string;
+  welcomeGreeting: string;
   userNotFoundError: string;
   networkError: string;
   // Login selector
@@ -96,7 +96,7 @@ export const translations: Record<'kh' | 'en', Translations> = {
     loginButton: "ចូល",
     loggingIn: "កំពុងចូល...",
     logoutButton: "ចាកចេញ",
-    welcomeMessage: (username) => `សួស្តី, ${username}`,
+    welcomeGreeting: "សួស្តី,",
     userNotFoundError: "រកមិនឃើញអ្នកប្រើទេ។ សូមស្នើសុំឱ្យអ្នកគ្រប់គ្រងបង្កើតគណនីសម្រាប់អ្នក។",
     networkError: "មិនអាចភ្ជាប់ទៅម៉ាស៊ីនមេបានទេ។ សូមពិនិត្យមើលការតភ្ជាប់អ៊ីនធឺណិតរបស់អ្នក។",
     userLoginPrompt: "ចូលគណនី​អ្នក​ប្រើ",
@@ -165,7 +165,7 @@ export const translations: Record<'kh' | 'en', Translations> = {
     loginButton: "Login",
     loggingIn: "Logging in...",
     logoutButton: "Log Out",
-    welcomeMessage: (username) => `Hi, ${username}`,
+    welcomeGreeting: "Hi,",
     userNotFoundError: "User not found. Please ask an admin to create an account for you.",
     networkError: "Could not connect to the server. Please check your internet connection.",
     userLoginPrompt: "User Login",

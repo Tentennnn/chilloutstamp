@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { translations } from '../constants/translations';
@@ -19,7 +20,13 @@ export const Header: React.FC<HeaderProps> = ({ language, toggleLanguage, userna
         <header className="flex flex-col sm:flex-row justify-between items-center w-full max-w-md mx-auto gap-2">
             <Logo />
             <div className="flex items-center gap-2 sm:gap-3 text-sm">
-                <span className="text-brand-green-800 font-semibold">{t.welcomeMessage(username)}</span>
+                 <div className="flex items-center bg-cream/20 backdrop-blur-sm border border-cream/30 text-cream rounded-full px-3 py-1.5 text-sm">
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                    <span>
+                        <span className="font-medium">{t.welcomeGreeting}</span>
+                        <span className="font-bold"> {username}</span>
+                    </span>
+                </div>
                 <LanguageSwitcher currentLanguage={language} onToggle={toggleLanguage} />
                 {onBack ? (
                     <button 
